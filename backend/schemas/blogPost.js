@@ -9,5 +9,4 @@ var blogPostSchema = mongoose.Schema({
     author:{ type: Schema.Types.ObjectId, ref: "User" },
     content:String
 })
-// console.log(blogPostSchema)
 module.exports = mongoose.model('blogPost',blogPostSchema)

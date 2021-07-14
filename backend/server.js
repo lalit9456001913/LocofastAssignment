@@ -75,12 +75,36 @@ app.post('/login',async(req,res)=>{
   }
 })
 
+app.get('/Logout', async(req, res) => {
+   
+  const sess = req.session;
+  var data = {
+      "Data": ""
+  };
+  sess.destroy(function(err) {
+      if (err) {
+
+          data["Data"] = 'Error destroying session';
+          res.json(data);
+      } else {
+          data["Data"] = 'Session destroy successfully';
+          res.removeHeader('x-auth-token')
+          res.status(200).json(data);
+      }
+  });
+})
+
 app.get('/searchBlog',(req,res)=>{
   let variable = req.body.variable
-  console.log(variable)
+  let filter;
+  if(mongoose.Types.ObjectId.isValid(variable)){
+    filter = { author: mongoose.mongo.ObjectID(variable) }
+  }else{
+    filter = { title:variable }
+  }
   try{
-    blogPost.find({$or:[{title:variable}]})
-    .populate('users')
+    blogPost.find(filter)
+    .populate('author')
     .exec((err,blog)=>{
       if(err){
         console.log(err)
@@ -89,8 +113,9 @@ app.get('/searchBlog',(req,res)=>{
       }
       res.json(blog)
     })
-  }catch(e){
-      res.json({"error":e})
+  }catch(error){
+      console.log(error)
+      res.json({"error":error})
   }
 })
 
@@ -113,11 +138,9 @@ app.post('/updateUser',(req,res)=>{
     }
 })
 app.get('/getAllBlogs',async(req,res)=>{
-    // let check = await blogPost.findOne({title:'cricket'}).populate('author')
-    // console.log(check)
     try{
         blogPost.find({})
-        .populate('author')
+        .populate({ path: 'author' })
         .exec((err,blogs)=>{
           if(err){
             jsonResp.mongoError.resp(res,err)
