@@ -40,6 +40,32 @@ app.use(session({
   cookie: { maxAge: 60000 }
 }))
 
+const isAdmin = (req,res,next) => {
+  //getting the token from header
+  const token = req.cookies['x-auth-token']?req.cookies['x-auth-token']:req.headers['x-auth-token']
+  if (!token) return res.status(401).send({"status": false, "code": 401, "msg": "TOKEN_NOT_FOUND "});
+  
+  try{
+      const decodedTokenData=jwt.verify(token, SECRET_KEY)
+      req.user=decodedTokenData.user 
+      req.session.username = req.user.username
+      User.findOne({_id:req.user._id},function(err,user){
+        if(err){
+          throw err
+        }
+        if(user.role=='admin'){
+          console.log('inside  role')
+          next();
+        }else{
+          res.status(401).send({"status": false, "code": 401, "msg": "you do not have admin permission"})
+        }
+      })
+      
+    }catch(err){
+      res.status(401).send({"status": false, "code": 401, "msg": err});
+  }
+}
+
 const verifyUser = (req,res,next) => {
   //getting the token from header
   const token = req.cookies['x-auth-token']
@@ -299,7 +325,7 @@ app.delete('/deleteBlog',verifyUser,(req,res)=>{
   
   /************************************ */
 /*******right now authenticated user can update requestLimit */
-app.post('/updateRequestLimit',verifyUser,(req,res)=>{
+app.post('/updateRequestLimit',isAdmin,(req,res)=>{
   let userId = req.body.userId
   let limit = req.body.requestLimit
   
