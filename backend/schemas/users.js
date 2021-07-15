@@ -5,6 +5,8 @@ var UserSchema = mongoose.Schema({
     username:String,
     email:String,
     password:{type:String,select:false},
-    role:{type:String,default:"normal"}
+    role:{type:String,default:"normal"},
+    apiKey:String
 })
+
 module.exports = mongoose.model('User',UserSchema)
