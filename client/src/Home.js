@@ -5,6 +5,7 @@ import './home.css'
 import Edit from './Edit.js'
 import { Redirect, BrowserRouter as Router, Route, Link, Switch } from 'react-router-dom';
 import Navbar from './Navbar.js';
+import ReadBlog from './readBlog.js';
 
 class Home extends React.Component{
     constructor(props){
@@ -16,7 +17,9 @@ class Home extends React.Component{
           allUserBlogs:[],
           updateObj:'',
           showUpdateDialogueBox:false,
-          login:login
+          login:login,
+          goToBlogPage:false,
+          blog:''
         }
         this.handleOnChange = this.handleOnChange.bind(this);
     }
@@ -51,6 +54,12 @@ class Home extends React.Component{
             }
          }) 
     }
+    readBlog=(blog)=>{
+      this.setState({
+        goToBlogPage:!this.state.readBlog,
+        blog:blog
+      })
+    }
     showUpdateDialogueBoxFlag=()=>{
       let userId = localStorage.getItem('userId')
         fetch('/getAllBlogs/'+userId).then(response=>response.json()).then(data=>{
@@ -73,8 +82,16 @@ class Home extends React.Component{
         allUserBlogs:value
       })
     }
-  
+    goBack=()=>{
+      this.setState({
+        goToBlogPage:false
+      })
+    }
+
     render(){
+       if(this.state.goToBlogPage){
+         return <ReadBlog goBack={this.goBack} blog={this.state.blog} />
+       }
        if(!this.state.login){
            return <Redirect to='/login' />
        }
