@@ -73,28 +73,7 @@ class Home extends React.Component{
         allUserBlogs:value
       })
     }
-    // submitForm=(e)=>{
-    //     e.preventDefault()
-    //     const requestOptions = {
-    //         method: 'POST',
-    //         headers: {
-    //             'Content-Type': 'application/json',
-    //             'Accept': 'application/json'
-    //         },
-    //         body: JSON.stringify({ })
-    //     };
-        
-    //     fetch('/getAllBlogs', requestOptions)
-    //         .then(response=> {
-    //             console.log(response)
-    //             if(response.ok){
-    //                 this.setState({
-                        
-    //                 })
-    //             }
-    //         })
-    //     }
-
+  
     render(){
        if(!this.state.login){
            return <Redirect to='/login' />
@@ -120,7 +99,7 @@ class Home extends React.Component{
             <tbody>
               {
                 this.state.allUserBlogs.map((blog,index)=> {
-                   return <tr key={index} >
+                   return <tr key={index} onClick={(e)=>this.readBlog(blog)} >
                             <td>{index+1}</td>
                             <td>{blog.title}</td>
                             <td>{blog.author.username}</td>
@@ -131,8 +110,8 @@ class Home extends React.Component{
                               <span className="glyphicon glyphicon-remove" onClick={(e)=>this.delete(blog)}></span>
                             </td>
                           </tr>
-                })
-              }
+                   })
+               }
             </tbody>
 </table>
 </>

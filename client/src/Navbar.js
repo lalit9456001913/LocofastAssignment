@@ -26,10 +26,15 @@ search=()=>{
     })
 }
 onlogout=()=>{
-	localStorage.clear()
-    this.setState({
-        login:false
+	fetch('/logout').then(response=>{
+        if(response.ok){
+            localStorage.clear()
+            this.setState({
+                login:false
+            })
+        }
     })
+    
   }
 
 render(){

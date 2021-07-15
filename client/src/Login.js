@@ -34,24 +34,32 @@ submitform = (e) => {
             },
             body: JSON.stringify({ username: username, password: password })
         };
+        let err=''
         fetch('/login', requestOptions)
-            .then(response => response.json()).then(data=> {
-              console.log(data)
-              let userId = data._id
-              if(data){
-                localStorage.setItem("username",username)
-                localStorage.setItem("userId",userId)
-                this.setState({
+            .then(response => {
+              console.log(response)
+              if(response.ok){
+                response.json().then(data=>{
+                  console.log(data)
+                  localStorage.setItem("username",username)
+                  localStorage.setItem("userId",data._id)
+                  this.setState({
                     login:true
+                 })
+                })
+                }else if(response.status==403){
+                let data = response.json()
+                this.setState({
+                  error:"you are already login 3 places please logout from any one of them for again login"
                 })
               }
               else{
                 this.setState({
-                  error:'something went wrong',
+                  error:"something went wrong",
                 })
                }
             })
-          }
+        }
 
 render() {
      let userId = localStorage.getItem('userId')
