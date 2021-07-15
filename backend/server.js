@@ -36,39 +36,44 @@ app.use(session({
   cookie: { secure: true }
 }))
 
-const verifyUser = (req,res,next) => {
-  //getting the token from header
-  const token = req.headers['x-auth-token']
-  if (!token) return res.status(401).send({"status": false, "code": 401, "msg": "TOKEN_NOT_FOUND"});
-  try{
-      const decodedTokenData=jwt.verify(token, SECRET_KEY)
-      req.user=decodedTokenData.user  //decodedTokenData= {mobile: "213123421", uid: "JOIASD2134234", firstName: "pritesh"}
-      req.session.username = req.user.username
-      next();
-  }
-  catch(exception) {
-      res.status(401).send({"status": false, "code": 401, "msg": "INVALID_TOKEN"});
-  }
-}
+// const verifyUser = (req,res,next) => {
+//   //getting the token from header
+//   const token = req.headers['x-auth-token']
+//   if (!token) return res.status(401).send({"status": false, "code": 401, "msg": "TOKEN_NOT_FOUND"});
+//   try{
+//       const decodedTokenData=jwt.verify(token, SECRET_KEY)
+//       req.user=decodedTokenData.user  //decodedTokenData= {mobile: "213123421", uid: "JOIASD2134234", firstName: "pritesh"}
+//       req.session.username = req.user.username
+//       next();
+//   }
+//   catch(exception) {
+//       res.status(401).send({"status": false, "code": 401, "msg": "INVALID_TOKEN"});
+//   }
+// }
+
+
 
 app.post('/login',async(req,res)=>{
   const {username,password} = req.body
   const user =await User.findOne({username:username,password:password}).select("_id username email")
 
   if(user){
-    if(user.session_count<3){
+    // let loginObj = await Login.findOne({username:username,password:password})
+
+    // if(loginObj.session_count<3 || !loginObj){
       jwt.sign({user},SECRET_KEY,(err,token)=>{
         if(err){
           res.status(403).send({"msg":"eigther username or password is wrong"})
         }else{
           req.session.username = username
           res.setHeader('x-auth-token', token)
+          console.log(user)
           res.status(200).send(user);
         }
       })
-    }else{
-      res.status(403).send({"msg":"you are already login 3 places please logout from any one of them for again login"})
-    }
+    // }else{
+    //   res.status(403).send({"msg":"you are already login 3 places please logout from any one of them for again login"})
+    // }
     
   }else{
     res.status(403).send({"msg":"eigther username or password is wrong"})
@@ -94,14 +99,10 @@ app.get('/Logout', async(req, res) => {
   });
 })
 
-app.get('/searchBlog',(req,res)=>{
-  let variable = req.body.variable
-  let filter;
-  if(mongoose.Types.ObjectId.isValid(variable)){
-    filter = { author: mongoose.mongo.ObjectID(variable) }
-  }else{
-    filter = { title:variable }
-  }
+app.get('/searchBlog/:search',async(req,res)=>{
+  let variable = req.params.search
+  let userIds = await User.find({username:variable}).distinct('_id')
+  let filter={$or:[{title:variable},{author:{$in:userIds}}]}
   try{
     blogPost.find(filter)
     .populate('author')
@@ -123,29 +124,34 @@ app.post('/updateUser',(req,res)=>{
     let user = req.body.user
     if(user._id == undefined){
       user._id = new mongoose.mongo.ObjectID()
+      user.role = "normal"
     }
+   
     try{
         User.findOneAndUpdate({_id:user._id},user,{new:true,upsert:true},function(err,user){
           if (err) {
             jsonResp.mongoError.resp(res,err)
             return
           }
-          console.log(user)
           res.status(200).json({data:user})
           })
     }catch(e){
         res.json({"error":e})
     }
 })
-app.get('/getAllBlogs',async(req,res)=>{
+app.get('/getAllBlogs/:userId',async(req,res)=>{
+    let user =await User.findOne({_id:req.params.userId})
+    let filter = user.role=='admin'?{}:{author:req.params.userId}
+    console.log(filter)
     try{
-        blogPost.find({})
+        blogPost.find(filter)
         .populate({ path: 'author' })
         .exec((err,blogs)=>{
           if(err){
             jsonResp.mongoError.resp(res,err)
             return
           }
+          console.log(blogs)
           res.json(blogs)
         })
     }catch(e){
@@ -172,7 +178,8 @@ app.get('/getOneBlog',(req,res)=>{
  })
 /*************************************** */
 /*********** update blog *****/
-app.put('/updateBlog',(req,res)=>{
+app.post('/updateBlog',(req,res)=>{
+  console.log(req.body.blog)
     let blog=req.body.blog
     if (blog._id == undefined) {
       blog._id = new mongoose.mongo.ObjectID()
@@ -183,7 +190,7 @@ app.put('/updateBlog',(req,res)=>{
           throw err
         }
         console.log(blog)
-        res.status(200).json({data:blog})
+        res.sendStatus(200)
       })
     }catch(e){
       res.json({"error":e})
@@ -194,7 +201,7 @@ app.put('/updateBlog',(req,res)=>{
   /***************** delete monitor url  */
 app.delete('/deleteBlog',(req,res)=>{
     try{
-      blogPost.findByIdAndRemove({_id:req.body.blog._id},function(err,result){
+      blogPost.findByIdAndRemove({_id:req.body._id},function(err,result){
         if(err){
           console.log('error',err)
           jsonResp.mongoError.resp(res,err)
@@ -208,11 +215,7 @@ app.delete('/deleteBlog',(req,res)=>{
   })
   
   /************************************ */
-//   if (variable.match(/^[0-9a-fA-F]{24}$/)) {
-//     // it's an ObjectID    
-// } else {
-//     // nope    
-// }
+
 
 server.listen(port, () => {
     console.log(`Example app listening at http://localhost:${port}`)
