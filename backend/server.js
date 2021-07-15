@@ -209,7 +209,7 @@ app.get('/getAllBlogs/:userId',verifyUser,async(req,res)=>{
   try{
     let getCount = await apiRequest.find({apiKey:user.apiKey,hitTime:{$gte:lastTime}})
     console.log(getCount.length)
-    if(getCount.length<2){
+    if(getCount.length<100){
       let apiKeyObj={
         _id: new mongoose.mongo.ObjectID(),
         apiKey:user.apiKey,
