@@ -202,13 +202,12 @@ app.get('/getAllBlogs/:userId',verifyUser,async(req,res)=>{
   let currTime = new Date()
   let lastTime  = new Date()
   lastTime.setMinutes( lastTime.getMinutes() - 5 );
-  console.log('apiKey...',typeof user.apiKey)
+  
   let filter = user.role=='admin'?{}:{author:req.params.userId}
-  let filter1={apiKey:user.apiKey,hitTime:{$gte:lastTime}}
-  console.log('.........',filter1)
+  
   try{
     let getCount = await apiRequest.find({apiKey:user.apiKey,hitTime:{$gte:lastTime}})
-    console.log(getCount.length)
+   
     if(getCount.length<100){
       let apiKeyObj={
         _id: new mongoose.mongo.ObjectID(),
@@ -216,7 +215,7 @@ app.get('/getAllBlogs/:userId',verifyUser,async(req,res)=>{
         userId:user._id,
         hitTime:new Date()
       }
-      console.log('obj....',apiKeyObj)
+     
       apiRequest.create(apiKeyObj,function(err,apiObj){
       if(err){
         console.log(err)
@@ -229,7 +228,6 @@ app.get('/getAllBlogs/:userId',verifyUser,async(req,res)=>{
             jsonResp.mongoError.resp(res,err)
             return
           }
-          console.log(blogs)
           res.json(blogs)
         })
       })
