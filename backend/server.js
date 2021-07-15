@@ -10,6 +10,7 @@ const express = require('express')
 const app = express()
 const server = require('http').createServer(app);
 const bodyParser = require('body-parser')
+const cookieParser = require('cookie-parser');
 /*************manage session */
 var session = require('express-session')
 /************************** */
@@ -30,7 +31,7 @@ const SECRET_KEY = "locofast"
 
 app.use(bodyParser.urlencoded({ extended: true }))
 app.use(bodyParser.json());
-
+app.use(cookieParser());
 app.set('trust proxy', 1) // trust first proxy
 app.use(session({
   secret: 'healthstatus',
@@ -41,7 +42,7 @@ app.use(session({
 
 const verifyUser = (req,res,next) => {
   //getting the token from header
-  const token = req.headers['x-auth-token']
+  const token = req.cookies['x-auth-token']
   const apiKey = req.headers['apikey']
   console.log(apiKey)
   if (!token && !apiKey) return res.status(401).send({"status": false, "code": 401, "msg": "TOKEN_NOT_FOUND "});
@@ -68,7 +69,6 @@ const verifyUser = (req,res,next) => {
 
 
 app.post('/login',async(req,res)=>{
-  console.log(req.user)
   const {username,password} = req.body
   const user =await User.findOne({username:username,password:password}).select("_id username email")
 
@@ -99,7 +99,7 @@ app.post('/login',async(req,res)=>{
           req.session.userId= user._id
           req.session.loginObjId = loginObj._id
           console.log('this is login object id',req.session.loginObjId)
-          res.setHeader('x-auth-token', token)
+          res.cookie('x-auth-token', token, { httpOnly: true })
           console.log(user)
           res.status(200).send(user);
         }
@@ -132,7 +132,7 @@ app.get('/Logout', (req, res) => {
           res.json(data);
       } else {
           data["Data"] = 'Session destroy successfully';
-          res.removeHeader('x-auth-token')
+          res.clearCookie('x-auth-token')
           res.status(200).json(data);
       }
   });
@@ -165,6 +165,7 @@ app.post('/updateUser',(req,res)=>{
       user._id = new mongoose.mongo.ObjectID()
       user.role = "normal",
       user.apiKey=uuid.v4();
+      user.requestLimit=100;
     }
     try{
         User.findOneAndUpdate({_id:user._id},user,{new:true,upsert:true},function(err,user){
@@ -197,6 +198,8 @@ app.get('/getAllBlogs/:userId',verifyUser,async(req,res)=>{
         res.json({"error":e})
     }
  })
+
+ 
  app.get('/getAllUserBlogsUsingApiKey',verifyUser,async(req,res)=>{
   let user =req.user
   let currTime = new Date()
@@ -208,7 +211,7 @@ app.get('/getAllBlogs/:userId',verifyUser,async(req,res)=>{
   try{
     let getCount = await apiRequest.find({apiKey:user.apiKey,hitTime:{$gte:lastTime}})
    
-    if(getCount.length<100){
+    if(getCount.length<user.requestLimit){
       let apiKeyObj={
         _id: new mongoose.mongo.ObjectID(),
         apiKey:user.apiKey,
@@ -295,7 +298,19 @@ app.delete('/deleteBlog',verifyUser,(req,res)=>{
   })
   
   /************************************ */
+/*******right now authenticated user can update requestLimit */
+app.post('/updateRequestLimit',verifyUser,(req,res)=>{
+  let userId = req.body.userId
+  let limit = req.body.requestLimit
+  
+  User.findByIdAndUpdate({_id:userId},{requestLimit:limit},{upsert:true,new:true},function(err,user){
+    if(err){
+      res.status(403).json({"msg":"request limit did not update"})
+    }
+    res.status(200).json(user)
+  })
 
+})
 
 server.listen(port, () => {
     console.log(`Example app listening at http://localhost:${port}`)
