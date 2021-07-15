@@ -1,0 +1,29 @@
+table {
+  font-family: arial, sans-serif;
+  border-collapse: collapse;
+  
+  margin: 20px;
+  border: 1px solid #dddddd;
+}
+
+td, th {
+  border: 1px solid #dddddd;
+  text-align: left;
+  padding: 8px;
+  cursor: pointer;
+}
+.signup-form{
+  text-align: center;
+}
+.signup-heading{
+  text-align: center;
+}
+.login-form{
+  text-align: center;
+}
+#logout{
+  margin-top: 9px;;
+}
+.home-heading{
+  text-align: center;
+}
